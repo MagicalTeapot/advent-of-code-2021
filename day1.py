@@ -18,6 +18,8 @@ print(sum(1 for a, b in pairwise(triplet_sums(data)) if int(b) > int(a)))
 
 
 ### Overcomplicated Solution
+
+# sliding_window recipe ripped from python docs
 def sliding_window(iterable, n):
     it = iter(iterable)
     window = deque(islice(it, n), maxlen=n)
