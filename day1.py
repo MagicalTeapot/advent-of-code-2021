@@ -4,6 +4,7 @@ from collections import deque
 with open("day1_input.txt") as lines:
     data = [int(x) for x in lines.readlines()]
 
+
 ### Simple Solution
 
 # Part 1
