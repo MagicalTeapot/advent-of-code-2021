@@ -2,7 +2,7 @@ from collections import defaultdict
 with open("day4_input.txt") as f:
     balls = [int(x) for x in next(f).split(",")]
     boards = []
-    for line in f:
+    for _ in f:
         board = {}
         for i in range(5):
             for j, val in enumerate(next(f).split()):
