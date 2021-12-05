@@ -1,5 +1,5 @@
 from collections import Counter
-with open("day3_input.txt") as f:
+with open("day03_input.txt") as f:
     data = tuple(line.strip() for line in f)
 
 def bit_counts(values):

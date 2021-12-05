@@ -9,7 +9,7 @@ def solve_board(board, balls):
             if lines[f"r{i}"] == 5 or lines[f"c{j}"] == 5:
                 return (ball_count, ball * sum(board.keys()))
 
-with open("day4_input.txt") as f:
+with open("day04_input.txt") as f:
     balls = [int(x) for x in next(f).split(",")]
     results = []
     for _ in f:

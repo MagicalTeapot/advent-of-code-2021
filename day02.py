@@ -1,5 +1,5 @@
 def read_lines():
-    with open("day2_input.txt") as f:
+    with open("day02_input.txt") as f:
         for line in f:
             x, y = line.split()
             yield x, int(y)
