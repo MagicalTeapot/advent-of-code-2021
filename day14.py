@@ -1,25 +1,25 @@
-import itertools
-import collections
+from itertools import pairwise
+from collections import Counter
 with open("day14_input.txt") as f:
     template = next(f).strip()
-    mappings = {}
-    lines = (l.strip() for l in f if l.strip())
-    for line in lines:
-        pair, middle = line.split(" -> ")
-        mappings[pair] = middle
+    mappings = dict(l.strip().split(" -> ") for l in f if l.strip())
 
-def next_step(template, mappings):
-    ret = template[0]
-    for lhs, rhs in itertools.pairwise(template):
-        if lhs + rhs in mappings:
-            ret += mappings[lhs + rhs]
-        ret += rhs
-    return ret
+def next_step(state):
+    new_state = Counter()
+    for (lhs, rhs), middle in mappings.items():
+        new_state[lhs, middle] += state[lhs, rhs]
+        new_state[middle, rhs] += state[lhs, rhs]
+    return new_state
 
-for _ in range(40):
-    template = next_step(template, mappings)
+def run(steps):
+    state = Counter(pairwise(template))
+    for _ in range(steps):
+        state = next_step(state)
 
-counts = collections.Counter(template)
-max_val = max(v for v in counts.values())
-min_val = min(v for v in counts.values())
-print(max_val - min_val)
+    counts = Counter({template[0]: 1})
+    for (_, rhs), count in state.items():
+        counts[rhs] += count
+    return (max(counts.values()) - min(counts.values()))
+
+print("Part 1:", run(10))
+print("Part 2:", run(40))
