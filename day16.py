@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from pprint import pprint
 
 def get_bits(stream, count):
     return "".join(next(stream) for _ in range(count))
@@ -16,27 +15,6 @@ def get_literal(stream):
         num_bits += 5
         if not more:
             return int(ret, base=2), num_bits
-
-class BitFetcher:
-    def __init__(self, stream):
-        self.stream = stream
-        self.num_bits = 0
-
-    def get_bits(self, count):
-        self.num_bits += count
-        return "".join(next(self.stream) for _ in range(count))
-
-    def get_header(self):
-        self.num_bits += 6
-        return int(get_bits(self.stream, 3), base=2), int(get_bits(self.stream, 3), base=2)
-
-    def get_literal(self):
-        ret = ""
-        while True:
-            more = self.get_bits(1) == "1"
-            ret += self.get_bits(4)
-            if not more:
-                return int(ret, base=2)
 
 @dataclass
 class Packet:
@@ -88,4 +66,8 @@ def parse(data):
 
 with open("day16_input.txt") as f:
     data = parse(f.read().strip())
-    pprint(data)
+
+def version_sum(root: Packet):
+    return root.version + sum(version_sum(node) for node in root.subpackets)
+
+print("Part 1:", version_sum(data))
