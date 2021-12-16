@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-with open("day16_input.txt") as f:
-    hexa = f.read().strip()
+from pprint import pprint
 
 def get_bits(stream, count):
     return "".join(next(stream) for _ in range(count))
@@ -18,11 +17,33 @@ def get_literal(stream):
         if not more:
             return int(ret, base=2), num_bits
 
+class BitFetcher:
+    def __init__(self, stream):
+        self.stream = stream
+        self.num_bits = 0
+
+    def get_bits(self, count):
+        self.num_bits += count
+        return "".join(next(self.stream) for _ in range(count))
+
+    def get_header(self):
+        self.num_bits += 6
+        return int(get_bits(self.stream, 3), base=2), int(get_bits(self.stream, 3), base=2)
+
+    def get_literal(self):
+        ret = ""
+        while True:
+            more = self.get_bits(1) == "1"
+            ret += self.get_bits(4)
+            if not more:
+                return int(ret, base=2)
+
 @dataclass
 class Packet:
     version: int
     typeid: int
     value: int | None = None
+    length_type: int | None = None
     subpackets: list["Packet"] | None = field(default_factory=list)
 
 def get_packet(stream):
@@ -30,38 +51,41 @@ def get_packet(stream):
     bits_used = 6
     packet = Packet(version=version, typeid=typeid)
 
-    match typeid:
-        case 4:  # Literal value
-            value, length = get_literal(stream)
-            packet.value = value
-            bits_used += length
-            return packet, bits_used
-        case _:  # Operator
-            mode = get_bits(stream, 1)
-            bits_used += 1
-            match mode:
-                case "0":
-                    length = int(get_bits(stream, 15), base=2)
-                    subpackets = iter(get_bits(stream, length))
-                    bits_used += length
-                    used = 0
-                    while used != length:
-                        subpacket, subpacket_size = get_packet(subpackets)
-                        packet.subpackets.append(subpacket)
-                        used += subpacket_size
-                case "1":
-                    num_subpackets = int(get_bits(stream, 11), base=2)
-                    for _ in range(num_subpackets):
-                        subpacket, subpacket_size = get_packet(stream)
-                        bits_used += subpacket_size
-                        packet.subpackets.append(subpacket)
+    if typeid == 4:
+        value, length = get_literal(stream)
+        packet.value = value
+        bits_used += length
+    else:
+        mode = get_bits(stream, 1)
+        bits_used += 1
+        match mode:
+            case "0":
+                packet.length_type = 0
+                length = int(get_bits(stream, 15), base=2)
+                bits_used += 15
+                substream = iter(get_bits(stream, length))
+                bits_used += length
+                used = 0
+                while used != length:
+                    sub_packet, sub_bits_used = get_packet(substream)
+                    packet.subpackets.append(sub_packet)
+                    used += sub_bits_used
+            case "1":
+                packet.length_type = 1
+                num_subpackets = int(get_bits(stream, 11), base=2)
+                bits_used += 11
+                for _ in range(num_subpackets):
+                    sub_packet, sub_bits_used = get_packet(stream)
+                    bits_used += sub_bits_used
+                    packet.subpackets.append(sub_packet)
 
     return packet, bits_used
             
-
-def process(data):
+def parse(data):
     stream = iter(bin(int(data, base=16))[2:].zfill(4 * len(data))) # Fill so leading zeroes are not lost
-    return get_packet(stream)
+    return get_packet(stream)[0]
 
-x, _ = process("EE00D40C823060")
-print(x)
+
+with open("day16_input.txt") as f:
+    data = parse(f.read().strip())
+    pprint(data)
