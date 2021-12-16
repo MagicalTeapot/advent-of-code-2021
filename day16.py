@@ -1,20 +1,26 @@
 from dataclasses import dataclass, field
 
-def get_bits(stream, count):
-    return "".join(next(stream) for _ in range(count))
+class StreamReader:
+    def __init__(self, stream):
+        self.stream = stream
+        self.bits_read = 0
 
-def get_header(stream):
-    return int(get_bits(stream, 3), base=2), int(get_bits(stream, 3), base=2)
+    def get_bits(self, count):
+        self.bits_read += count
+        return "".join(next(self.stream) for _ in range(count))
 
-def get_literal(stream):
-    num_bits = 0
-    ret = ""
-    while True:
-        more = get_bits(stream, 1) == "1"
-        ret += get_bits(stream, 4)
-        num_bits += 5
-        if not more:
-            return int(ret, base=2), num_bits
+    def get_header(self):
+        return int(self.get_bits(3), base=2), int(self.get_bits(3), base=2)
+
+    def get_literal(self):
+        num_bits = 0
+        ret = ""
+        while True:
+            more = self.get_bits(1) == "1"
+            ret += self.get_bits(4)
+            num_bits += 5
+            if not more:
+                return int(ret, base=2), num_bits
 
 @dataclass
 class Packet:
@@ -25,24 +31,20 @@ class Packet:
     subpackets: list["Packet"] | None = field(default_factory=list)
 
 def get_packet(stream):
-    version, typeid = get_header(stream)
-    bits_used = 6
+    reader = StreamReader(stream)
+    version, typeid = reader.get_header()
     packet = Packet(version=version, typeid=typeid)
 
     if typeid == 4:
-        value, length = get_literal(stream)
+        value, length = reader.get_literal()
         packet.value = value
-        bits_used += length
     else:
-        mode = get_bits(stream, 1)
-        bits_used += 1
+        mode = reader.get_bits(1)
         match mode:
             case "0":
                 packet.length_type = 0
-                length = int(get_bits(stream, 15), base=2)
-                bits_used += 15
-                substream = iter(get_bits(stream, length))
-                bits_used += length
+                length = int(reader.get_bits(15), base=2)
+                substream = iter(reader.get_bits(length))
                 used = 0
                 while used != length:
                     sub_packet, sub_bits_used = get_packet(substream)
@@ -50,14 +52,13 @@ def get_packet(stream):
                     used += sub_bits_used
             case "1":
                 packet.length_type = 1
-                num_subpackets = int(get_bits(stream, 11), base=2)
-                bits_used += 11
+                num_subpackets = int(reader.get_bits(11), base=2)
                 for _ in range(num_subpackets):
                     sub_packet, sub_bits_used = get_packet(stream)
-                    bits_used += sub_bits_used
+                    reader.bits_read += sub_bits_used
                     packet.subpackets.append(sub_packet)
 
-    return packet, bits_used
+    return packet, reader.bits_read
             
 def parse(data):
     stream = iter(bin(int(data, base=16))[2:].zfill(4 * len(data))) # Fill so leading zeroes are not lost
