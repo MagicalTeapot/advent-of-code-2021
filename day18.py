@@ -24,7 +24,6 @@ class Node:
         new_node = Node(deepcopy(self), deepcopy(other), depth=0) # -1 so the next loop makes it 0
         update_depths(new_node)
         reduce_node(new_node)
-        update_depths(new_node)
         return new_node
 
 def update_depths(root: Node, depth: int = 0):
