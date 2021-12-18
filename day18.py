@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field, replace
 from typing import Union
+from itertools import combinations
+from copy import deepcopy
 
 @dataclass
 class Node:
@@ -19,7 +21,7 @@ class Node:
             yield from iter(self.rhs)
 
     def __add__(self, other):
-        new_node = Node(self, other, depth=0) # -1 so the next loop makes it 0
+        new_node = Node(deepcopy(self), deepcopy(other), depth=0) # -1 so the next loop makes it 0
         update_depths(new_node)
         reduce_node(new_node)
         update_depths(new_node)
@@ -126,12 +128,14 @@ def magnitude(node: Node | int):
         return node
     return 3 * magnitude(node.lhs) + 2 * magnitude(node.rhs)
 
-with open("day18_input.txt") as f:
-    A = from_string(next(f).strip())
-    B = from_string(next(f).strip())
-    result = A + B
-    print(result)
-    for line in f:
-        result = result + from_string(line.strip())
-        print(result)
-    print(magnitude(result))
+def get_numbers():
+    with open("day18_input.txt") as f:
+        return [from_string(l.strip()) for l in f]
+
+total, *rest = get_numbers()
+for num in rest:
+    total += num
+print("Part 1:", magnitude(total))
+
+numbers = get_numbers()
+print("Part 2:", max(max(magnitude(a + b), magnitude(b + a)) for a, b in combinations(numbers, 2)))
